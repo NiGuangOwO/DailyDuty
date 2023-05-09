@@ -1,0 +1,3 @@
+files:
+  - source: /DailyDuty/System/Localization/Strings.resx
+    translation: /DailyDuty/System/Localization/%file_name%.%two_letters_code%.%file_extension%
