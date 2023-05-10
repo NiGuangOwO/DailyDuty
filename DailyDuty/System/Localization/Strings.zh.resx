@@ -547,7 +547,7 @@
         <value>此任务视为已完成所需的掉落次数</value>
     </data>
   <data name="CurrentNumDrops" xml:space="preserve">
-        <value>当前丢弃计数</value>
+        <value>当前掉落计数</value>
     </data>
   <data name="CastingTeleport" xml:space="preserve">
         <value>传送咏唱中</value>
