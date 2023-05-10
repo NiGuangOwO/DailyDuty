@@ -63,7 +63,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="E:\插件工程\KamiLib\KamiLib.csproj" />
+        <ProjectReference Include="..\KamiLib\KamiLib.csproj" />
     </ItemGroup>
 
     <ItemGroup>
