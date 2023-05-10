@@ -268,7 +268,7 @@
         <value>可以点击通知来打开任务搜索器</value>
     </data>
   <data name="CompleteWhenTomeCapped" xml:space="preserve">
-        <value>Tomecapped时完成</value>
+        <value>周限神典石到达上限时完成</value>
     </data>
   <data name="CompleteWhenTomeCappedHelp" xml:space="preserve">
         <value>当您达到神典石周限时，标记任务为已完成</value>
