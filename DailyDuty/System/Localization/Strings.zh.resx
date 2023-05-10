@@ -577,7 +577,7 @@
         <value>分类标签字体大小</value>
     </data>
   <data name="CategorySpacing" xml:space="preserve">
-        <value>空格低于类别</value>
+        <value>类别下方间距</value>
     </data>
   <data name="CategoryBackgroundColor" xml:space="preserve">
         <value>背景颜色</value>
@@ -604,7 +604,7 @@
         <value>标题下方的间距</value>
     </data>
   <data name="ModuleSpacing" xml:space="preserve">
-        <value>在模块下方的间距</value>
+        <value>模块下方的间距</value>
     </data>
   <data name="EnableGlowingOutline" xml:space="preserve">
         <value>启用发光轮廓</value>
