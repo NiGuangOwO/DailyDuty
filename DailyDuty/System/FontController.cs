@@ -9,7 +9,7 @@ public class FontController : IDisposable
 
     public FontController()
     {
-        Axis12 = Service.PluginInterface.UiBuilder.GetGameFontHandle( new GameFontStyle(GameFontFamilyAndSize.Axis12) );
+        Axis12 = Service.PluginInterface.UiBuilder.GetGameFontHandle( new GameFontStyle(GameFontFamilyAndSize.ChnAxis120) );
     }
 
     public void Dispose()
