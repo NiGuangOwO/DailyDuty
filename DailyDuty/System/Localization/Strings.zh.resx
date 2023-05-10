@@ -156,10 +156,10 @@
         <value>小于或等于</value>
     </data>
   <data name="All" xml:space="preserve">
-        <value>已使用所有受理限额</value>
+        <value>已使用所有限额</value>
     </data>
   <data name="Single" xml:space="preserve">
-        <value>已使用一个受理限额</value>
+        <value>已使用一个限额</value>
     </data>
   <data name="Plus80" xml:space="preserve">
         <value>分数80+</value>
@@ -213,11 +213,11 @@
         <value>登录时发送状态通知到聊天框</value>
     </data>
   <data name="SendStatusOnZoneChangeHelp" xml:space="preserve">
-        <value>当您更改地图，向聊天发送状态通知
+        <value>当您更改地图，发送状态通知到聊天框
 限制为每5分钟一次时</value>
     </data>
   <data name="SendMessageOnResetHelp" xml:space="preserve">
-        <value>如果最近发生重置事件，发送通知到聊天</value>
+        <value>如果最近发生重置，发送通知到聊天框</value>
     </data>
   <data name="NextReset" xml:space="preserve">
         <value>下次重置</value>
@@ -370,7 +370,7 @@
         <value>可以点击通知来打开任务搜索器的大型任务类别</value>
     </data>
   <data name="InstanceNotifications" xml:space="preserve">
-        <value>示例通知</value>
+        <value>副本通知</value>
     </data>
   <data name="InstanceNotificationsHelp" xml:space="preserve">
         <value>当进入任务时，如果该任务可以使用再想想或它已经可收集时显示</value>
@@ -529,10 +529,10 @@
         <value>等等！你忘了你的天书！</value>
     </data>
   <data name="NearKhloe" xml:space="preserve">
-        <value>靠近迷你库洛</value>
+        <value>靠近库洛·阿里亚珀</value>
     </data>
   <data name="DistanceToKhloe" xml:space="preserve">
-        <value>到迷你库洛的距离</value>
+        <value>到库洛·阿里亚珀的距离</value>
     </data>
   <data name="ComparisonHelp" xml:space="preserve">
         <value>当满足条件时，模块被视为“完成”</value>
@@ -541,10 +541,10 @@
         <value>任务名称</value>
     </data>
   <data name="NumDrops" xml:space="preserve">
-        <value>目标丢弃计数</value>
+        <value>目标掉落计数</value>
     </data>
   <data name="RaidsModuleHelp" xml:space="preserve">
-        <value>此任务视为已完成所需的跌落次数</value>
+        <value>此任务视为已完成所需的掉落次数</value>
     </data>
   <data name="CurrentNumDrops" xml:space="preserve">
         <value>当前丢弃计数</value>
@@ -577,7 +577,7 @@
         <value>分类标签字体大小</value>
     </data>
   <data name="CategorySpacing" xml:space="preserve">
-        <value>空格低于类别</value>
+        <value>类别下方间距</value>
     </data>
   <data name="CategoryBackgroundColor" xml:space="preserve">
         <value>背景颜色</value>
@@ -604,7 +604,7 @@
         <value>标题下方的间距</value>
     </data>
   <data name="ModuleSpacing" xml:space="preserve">
-        <value>在模块下方的间距</value>
+        <value>模块下方的间距</value>
     </data>
   <data name="EnableGlowingOutline" xml:space="preserve">
         <value>启用发光轮廓</value>
