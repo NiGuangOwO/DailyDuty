@@ -379,10 +379,10 @@
         <value>可以点击通知打开天书或传送到田园郡</value>
     </data>
   <data name="StickerAvailableNotice" xml:space="preserve">
-        <value>贴纸可收集通知</value>
+        <value>印花可收集通知</value>
     </data>
   <data name="StickerAvailableNoticeHelp" xml:space="preserve">
-        <value>当更改地图时，如果有贴纸可收集时警告</value>
+        <value>当更改地图时，如果有印花可收集则警告</value>
     </data>
   <data name="UnclaimedBookWarning" xml:space="preserve">
         <value>未认领天书警告</value>
@@ -394,7 +394,7 @@
         <value>当你接近第二次机会限制并且可以使用重新贴时发出警告</value>
     </data>
   <data name="PlacedStickers" xml:space="preserve">
-        <value>已放置贴纸</value>
+        <value>已放置印花</value>
     </data>
   <data name="SecondChancePoints" xml:space="preserve">
         <value>胡思乱想奇想点</value>
@@ -409,22 +409,22 @@
         <value>剩余时间</value>
     </data>
   <data name="RerollNotice" xml:space="preserve">
-        <value>如果使用再想想，当前任务可以得到一个贴纸</value>
+        <value>如果使用再想想，当前任务可以得到一个印花</value>
     </data>
   <data name="RerollsAvailable" xml:space="preserve">
         <value>你有 {0} 个再想想次数</value>
     </data>
   <data name="StampAlreadyAvailable" xml:space="preserve">
-        <value>当前任务已经有一个贴纸了</value>
+        <value>当前任务已经收集了一个印花了</value>
     </data>
   <data name="CompletionAvailable" xml:space="preserve">
-        <value>完成当前任务将奖励你一个贴纸</value>
+        <value>完成当前副本将奖励你一个印花</value>
     </data>
   <data name="StampClaimable" xml:space="preserve">
-        <value>你可以为这个任务收集一个贴纸！</value>
+        <value>你可以为这个任务收集一个印花！</value>
     </data>
   <data name="StickerAvailable" xml:space="preserve">
-        <value>贴纸可用</value>
+        <value>印花可收集</value>
     </data>
   <data name="ShuffleAvailable" xml:space="preserve">
         <value>胡思乱想可用</value>
@@ -433,7 +433,7 @@
         <value>新天书可用</value>
     </data>
   <data name="StickersRemaining" xml:space="preserve">
-        <value>剩余 {0} 个贴纸</value>
+        <value>剩余 {0} 个印花</value>
     </data>
   <data name="ModuleConfiguration" xml:space="preserve">
         <value>模块配置</value>
