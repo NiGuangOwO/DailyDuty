@@ -57,7 +57,7 @@
         <value>已禁用</value>
     </data>
   <data name="ModuleReset" xml:space="preserve">
-        <value>重置模块</value>
+        <value>模块重置</value>
     </data>
   <data name="TasksIncomplete" xml:space="preserve">
         <value>任务未完成</value>
