@@ -57,7 +57,7 @@
         <value>已禁用</value>
     </data>
   <data name="ModuleReset" xml:space="preserve">
-        <value>重置模块</value>
+        <value>模块重置</value>
     </data>
   <data name="TasksIncomplete" xml:space="preserve">
         <value>任务未完成</value>
@@ -394,7 +394,7 @@
         <value>当你接近第二次机会限制并且可以使用重新贴时发出警告</value>
     </data>
   <data name="PlacedStickers" xml:space="preserve">
-        <value>Placed Stickers</value>
+        <value>已放置贴纸</value>
     </data>
   <data name="SecondChancePoints" xml:space="preserve">
         <value>胡思乱想奇想点</value>
