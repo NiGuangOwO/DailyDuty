@@ -16,13 +16,13 @@ You can open the configuration window with the chat command `/dd`
 
 This window has all the available configuration options for each module within DailyDuty
 
-![image](https://user-images.githubusercontent.com/9083275/230686601-7271614d-1c16-4fe4-8d19-7b625e9bd0ae.png)
+![image](https://github.com/MidoriKami/DailyDuty/assets/9083275/f693e331-7ce7-4137-8e9a-03c0ff9c1526)
 
 ## Data Window
 
 This window displays all the currently stored data for each module
 
-![image](https://user-images.githubusercontent.com/9083275/230686693-32aaed0b-8116-40b6-8593-31f99bcf3d6d.png)
+![image](https://github.com/MidoriKami/DailyDuty/assets/9083275/8a029924-4b92-4ca5-aced-3f3da0c26644)
 
 ## Notifications
 
