@@ -316,10 +316,10 @@ internal static class TaskLookup
                     10 => new List<uint> { 798, 799, 800, 801 },
                     
                     > 10 => LuminaCache<ContentFinderCondition>.Instance
-                        .OfLanguage(ClientLanguage.English)
+                        .OfLanguage(ClientLanguage.ChineseSimplified)
                         .Where(row => row.ContentType.Row is 5)
                         .Where(row => row.ContentMemberType.Row is 3)
-                        .Where(row => !row.Name.ToDalamudString().TextValue.Contains("Savage"))
+                        .Where(row => !row.Name.ToDalamudString().TextValue.Contains("零式"))
                         .Where(row => row.ItemLevelRequired >= 425)
                         .OrderBy(row => row.SortKey)
                         .Select(row => row.TerritoryType.Row)
