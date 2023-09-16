@@ -1,52 +1,29 @@
-﻿using System.Linq;
-using DailyDuty.Abstracts;
+﻿using DailyDuty.Abstracts;
 using DailyDuty.Models;
-using DailyDuty.Models.Attributes;
 using DailyDuty.Models.Enums;
+using DailyDuty.Models.ModuleData;
 using DailyDuty.System.Helpers;
 using DailyDuty.System.Localization;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using KamiLib.Caching;
 using Lumina.Excel.GeneratedSheets;
 
 namespace DailyDuty.System;
-
-public class DutyRouletteConfig : ModuleConfigBase
-{
-    [SelectableTasks]
-    public LuminaTaskConfigList<ContentRoulette> TaskConfig = new();
-
-    [ClickableLink("DutyRouletteOpenDutyFinder")]
-    public bool ClickableLink = true;
-
-    [ConfigOption("CompleteWhenTomeCapped", "CompleteWhenTomeCappedHelp")]
-    public bool CompleteWhenCapped = false;
-}
-
-public class DutyRouletteData : ModuleDataBase
-{
-    [SelectableTasks]
-    public LuminaTaskDataList<ContentRoulette> TaskData = new();
-
-    [DataDisplay("CurrentWeeklyTomestones")] 
-    public int ExpertTomestones;
-
-    [DataDisplay("WeeklyTomestoneLimit")]
-    public int ExpertTomestoneCap;
-
-    [DataDisplay("AtWeeklyTomestoneLimit")]
-    public bool AtTomeCap;
-}
 
 public unsafe class DutyRoulette : Module.DailyModule
 {
     public override ModuleName ModuleName => ModuleName.DutyRoulette;
     
-    public override ModuleDataBase ModuleData { get; protected set; } = new DutyRouletteData();
-    public override ModuleConfigBase ModuleConfig { get; protected set; } = new DutyRouletteConfig();
+    public override IModuleDataBase ModuleData { get; protected set; } = new DutyRouletteData();
+    public override IModuleConfigBase ModuleConfig { get; protected set; } = new DutyRouletteConfig();
     private DutyRouletteData Data => ModuleData as DutyRouletteData ?? new DutyRouletteData();
     private DutyRouletteConfig Config => ModuleConfig as DutyRouletteConfig ?? new DutyRouletteConfig();
+    
+    public override bool HasClickableLink => true;
+    public override PayloadId ClickableLinkPayloadId => PayloadId.OpenDutyFinderRoulette;
+
+    public override bool HasTooltip => true;
+    public override string TooltipText => string.Join("\n", GetIncompleteRows(Config.TaskConfig, Data.TaskData));
 
     protected override void UpdateTaskLists()
     {
@@ -59,9 +36,9 @@ public unsafe class DutyRoulette : Module.DailyModule
     {
         Data.TaskData.Update(ref DataChanged, rowId => RouletteController.Instance()->IsRouletteComplete((byte) rowId));
 
-        TryUpdateData(ref Data.ExpertTomestones, InventoryManager.Instance()->GetWeeklyAcquiredTomestoneCount());
-        TryUpdateData(ref Data.ExpertTomestoneCap, InventoryManager.GetLimitedTomestoneWeeklyLimit());
-        TryUpdateData(ref Data.AtTomeCap, Data.ExpertTomestones == Data.ExpertTomestoneCap);
+        Data.ExpertTomestones = TryUpdateData(Data.ExpertTomestones, InventoryManager.Instance()->GetWeeklyAcquiredTomestoneCount());
+        Data.ExpertTomestoneCap = TryUpdateData(Data.ExpertTomestoneCap, InventoryManager.GetLimitedTomestoneWeeklyLimit());
+        Data.AtTomeCap = TryUpdateData(Data.AtTomeCap, Data.ExpertTomestones == Data.ExpertTomestoneCap);
         
         base.Update();
     }
@@ -73,9 +50,6 @@ public unsafe class DutyRoulette : Module.DailyModule
         base.Reset();
     }
     
-    public override bool HasTooltip { get; protected set; } = true;
-    public override string GetTooltip() => GetTaskListTooltip(Config.TaskConfig, Data.TaskData, row => LuminaCache<ContentRoulette>.Instance.GetRow(row)!.Name.ToString());
-
     protected override ModuleStatus GetModuleStatus()
     {
         if (Config.CompleteWhenCapped && Data.AtTomeCap) return ModuleStatus.Complete;

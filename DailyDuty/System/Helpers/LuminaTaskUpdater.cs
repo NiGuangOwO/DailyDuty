@@ -22,13 +22,13 @@ public class LuminaTaskUpdater<T> where T : ExcelRow
 
     public void UpdateConfig(LuminaTaskConfigList<T> configValues)
     {
-        if (configValues.ConfigList.Count != luminaRows.Count())
+        if (configValues.Count != luminaRows.Count())
         {
             foreach (var luminaEntry in luminaRows)
             {
-                if (!configValues.ConfigList.Any(task => task.RowId == luminaEntry.RowId))
+                if (!configValues.Any(task => task.RowId == luminaEntry.RowId))
                 {
-                    configValues.ConfigList.Add(new LuminaTaskConfig<T>
+                    configValues.Add(new LuminaTaskConfig<T>
                     {
                         RowId = luminaEntry.RowId,
                         Enabled = false,
@@ -39,17 +39,19 @@ public class LuminaTaskUpdater<T> where T : ExcelRow
             
             module.SaveConfig();
         }
+
+        configValues.Sort();
     }
     
     public void UpdateData(LuminaTaskDataList<T> dataList)
     {
-        if (dataList.DataList.Count != luminaRows.Count())
+        if (dataList.Count != luminaRows.Count())
         {
             foreach (var luminaEntry in luminaRows)
             {
-                if (!dataList.DataList.Any(task => task.RowId == luminaEntry.RowId))
+                if (!dataList.Any(task => task.RowId == luminaEntry.RowId))
                 {
-                    dataList.DataList.Add(new LuminaTaskData<T>
+                    dataList.Add(new LuminaTaskData<T>
                     {
                         RowId = luminaEntry.RowId,
                         Complete = false,
@@ -60,5 +62,7 @@ public class LuminaTaskUpdater<T> where T : ExcelRow
             
             module.SaveData();
         }
+
+        dataList.Sort();
     }
 }

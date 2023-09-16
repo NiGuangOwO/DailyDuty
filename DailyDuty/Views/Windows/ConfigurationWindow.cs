@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
 using DailyDuty.Views.Tabs;
+using KamiLib.ChatCommands;
+using KamiLib.Commands;
 using KamiLib.Interfaces;
-using KamiLib.Misc;
+using KamiLib.Utilities;
 using KamiLib.Windows;
 
 namespace DailyDuty.Views;
@@ -30,6 +32,8 @@ public class ConfigurationWindow : TabbedSelectionWindow
             MinimumSize = new Vector2(650, 400),
             MaximumSize = new Vector2(9999,9999)
         };
+        
+        CommandController.RegisterCommands(this);
     }
     
     protected override IEnumerable<ISelectionWindowTab> GetTabs() => tabs;
@@ -47,5 +51,19 @@ public class ConfigurationWindow : TabbedSelectionWindow
     {
         base.DrawWindowExtras();
         PluginVersion.Instance.DrawVersionText();
+    }
+
+    [BaseCommandHandler("OpenConfigWindow")]
+    // ReSharper disable once UnusedMember.Local
+    private void OpenConfigWindow()
+    {
+        if (!Service.ClientState.IsLoggedIn) return;
+        if (Service.ClientState.IsPvP)
+        {
+            Chat.PrintError("The configuration menu cannot be opened while in a PvP area");
+            return;
+        }
+            
+        Toggle();
     }
 }

@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Globalization;
 using System.Linq;
 using DailyDuty.Interfaces;
-using DailyDuty.Models.Attributes;
 using DailyDuty.System.Localization;
-using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using ImGuiNET;
 using KamiLib.Caching;
+using KamiLib.Utilities;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 using Action = System.Action;
@@ -29,18 +26,12 @@ public class LuminaTaskConfigList<T> : IConfigDrawable, ICollection<LuminaTaskCo
     public bool Contains(LuminaTaskConfig<T> item) => ConfigList.Contains(item);
     public void CopyTo(LuminaTaskConfig<T>[] array, int arrayIndex) => ConfigList.CopyTo(array, arrayIndex);
     public bool Remove(LuminaTaskConfig<T> item) => ConfigList.Remove(item);
-
     public int Count => ConfigList.Count;
     public bool IsReadOnly => false;
     // End ICollection
     
     public void Draw(Action saveAction)
     {
-        ImGui.Text(Strings.TaskSelection);
-        ImGui.Separator();
-
-        ImGuiHelpers.ScaledIndent(15.0f);
-        
         switch (this)
         {
             case LuminaTaskConfigList<ContentsNote>:
@@ -63,23 +54,15 @@ public class LuminaTaskConfigList<T> : IConfigDrawable, ICollection<LuminaTaskCo
                 ImGui.Text("Invalid Config Data Type");
                 break;
         }
-        
-        ImGuiHelpers.ScaledDummy(10.0f);
-        ImGuiHelpers.ScaledIndent(-15.0f);
     }
 
+    public void Sort() => ConfigList = ConfigList.OrderBy(e => e.RowId).ToList();
+    
     private void DrawStandardConfigList(Action saveAction)
     {
         foreach (var configEntry in ConfigList)
         {
-            var entryLabel = this switch
-            {
-                LuminaTaskConfigList<ContentRoulette> => LuminaCache<ContentRoulette>.Instance.GetRow(configEntry.RowId)!.Name.ToString(),
-                LuminaTaskConfigList<ClassJob> => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(LuminaCache<ClassJob>.Instance.GetRow(configEntry.RowId)!.Name.ToString()),
-                LuminaTaskConfigList<MobHuntOrderType> => GetMobHuntOrderTypeString(configEntry.RowId),
-                LuminaTaskConfigList<Addon> => LuminaCache<Addon>.Instance.GetRow(configEntry.RowId)!.Text.ToString(),
-                _ => throw new Exception($"Data Type Not Registered")
-            };
+            var entryLabel = configEntry.GetLabel();
             
             var enabled = configEntry.Enabled;
             if (ImGui.Checkbox($"{entryLabel}##{configEntry.RowId}", ref enabled))
@@ -139,7 +122,7 @@ public class LuminaTaskConfigList<T> : IConfigDrawable, ICollection<LuminaTaskCo
                             
                     ImGui.TableNextColumn();
                     var count = data.TargetCount;
-                    ImGui.InputInt("##TrackedItemCount", ref count, 0, 0);
+                    ImGui.InputInt($"##TrackedItemCount{luminaData.Name}", ref count, 0, 0);
                     if (ImGui.IsItemDeactivatedAfterEdit())
                     {
                         data.TargetCount = count;
@@ -155,15 +138,5 @@ public class LuminaTaskConfigList<T> : IConfigDrawable, ICollection<LuminaTaskCo
                             
             ImGui.EndTable();
         }
-    }
-
-    private string GetMobHuntOrderTypeString(uint row)
-    {
-        var itemInfo = LuminaCache<MobHuntOrderType>.Instance.GetRow(row)!;
-        
-        var eventItem = itemInfo.EventItem.Value?.Name.ToString();
-        if(eventItem == string.Empty) eventItem = itemInfo.EventItem.Value?.Singular.ToString();
-
-        return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(eventItem ?? "Unable to Read Event Item Name");
     }
 }

@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using DailyDuty.Models.Attributes;
 using DailyDuty.Models.Enums;
 using DailyDuty.System;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiLib.Atk;
+using KamiLib.Utilities;
 
 namespace DailyDuty.Models;
 
@@ -39,7 +39,7 @@ public unsafe class TodoUiCategoryController : IDisposable
             Id = HeaderNodeBaseId + (uint) type,
         });
         
-        headerNode.SetText(type.GetLabel());
+        headerNode.Node->SetText(type.GetLabel());
         categoryResNode.AddResourceNode(headerNode, AddonNamePlate);
 
         foreach (var module in DailyDutySystem.ModuleController.GetModules(type))
@@ -51,11 +51,19 @@ public unsafe class TodoUiCategoryController : IDisposable
 
             if (module.HasTooltip)
             {
-                textNode.EnableTooltip(AddonNamePlate, module.ModuleName.GetLabel());
+                textNode.AddTooltip(AddonNamePlate);
+                textNode.SetTooltipStringFunction(() => module.TooltipText);
             }
-            
+
+            if (module.HasClickableLink)
+            {
+                var moduleClickAction = PayloadController.Instance.GetDelegateForPayload(module.ClickableLinkPayloadId);
+                
+                textNode.AddClickEvent(AddonNamePlate,() => moduleClickAction.Invoke(0, null!));
+            }
+
             moduleNodes.Add(module.ModuleName, textNode);
-            textNode.SetText(module.ModuleName.GetLabel());
+            textNode.Node->SetText(module.ModuleName.GetLabel());
             categoryResNode.AddResourceNode(textNode, AddonNamePlate);
         }
     }
@@ -96,25 +104,27 @@ public unsafe class TodoUiCategoryController : IDisposable
                 anyVisible = true;
                 if (moduleResNode->Width > largestWidth) largestWidth = moduleResNode->Width;
             }
+            
+            module.Value.ToggleTooltip(moduleResNode->IsVisible);
+            module.Value.ToggleClickEvent(moduleResNode->IsVisible);
         }
         
         categoryResNode.ResourceNode->SetHeight(startPosition);
         categoryResNode.ResourceNode->SetWidth(largestWidth);
 
-        if(!anyVisible) categoryResNode.SetVisibility(false);
+        if(!anyVisible) {categoryResNode.ResourceNode->ToggleVisibility(false);}
     }
     
-    public void UpdateModule(ModuleName module, string label, string tooltip, bool visible)
+    public void UpdateModule(ModuleName module, string label, bool visible)
     {
-        moduleNodes[module].SetText(label);
-        moduleNodes[module].SetVisible(visible);
-        moduleNodes[module].UpdateTooltip(visible ? tooltip : string.Empty);
+        moduleNodes[module].Node->SetText(label);
+        moduleNodes[module].Node->AtkResNode.ToggleVisibility(visible);
     }
     
     public void UpdateCategoryHeader(string label, bool visible)
     {
-        headerNode.SetText(label);
-        headerNode.SetVisible(visible);
+        headerNode.Node->SetText(label);
+        headerNode.Node->AtkResNode.ToggleVisibility(visible);
     }
 
     public void UpdateModuleStyle(ModuleName module, TextNodeOptions options)
@@ -132,7 +142,5 @@ public unsafe class TodoUiCategoryController : IDisposable
     
     public TextNode GetHeaderNode() => headerNode;
     public ResNode GetCategoryContainer() => categoryResNode;
-    public void SetVisible(bool show) => categoryResNode.SetVisibility(show);
-
-
+    public void SetVisible(bool show) => categoryResNode.ResourceNode->ToggleVisibility(show);
 }

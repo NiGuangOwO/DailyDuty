@@ -1,119 +1,34 @@
-﻿using System;
+﻿// ReSharper disable UnusedMember.Local
+// ReSharper disable UnusedParameter.Local
+using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using DailyDuty.Abstracts;
-using DailyDuty.Models.Attributes;
+using DailyDuty.Models;
 using DailyDuty.Models.Enums;
-using DailyDuty.System.Commands;
-using DailyDuty.System.Helpers;
 using DailyDuty.System.Localization;
-using DailyDuty.Views.Components;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 using KamiLib;
 using KamiLib.Atk;
+using KamiLib.AutomaticUserInterface;
+using KamiLib.ChatCommands;
+using KamiLib.Commands;
 using KamiLib.GameState;
+using KamiLib.Utilities;
 
 namespace DailyDuty.System;
-
-public class TodoConfig
-{
-    public bool Enable = true;
-    public bool PreviewMode = true;
-
-    [ConfigOption("RightAlign")]
-    public bool RightAlign = false;
-    
-    [ConfigOption("Dragable")]
-    public bool CanDrag = false;
-
-    [ConfigOption("AnchorLocation")]
-    public WindowAnchor Anchor = WindowAnchor.TopRight;
-    
-    [ConfigOption("Position")]
-    public Vector2 Position = new Vector2(1024, 720) / 2.0f;
-
-    [ConfigOption("Background")] 
-    public bool BackgroundImage = true;
-
-    [ConfigOption("EnableDailyTasks")]
-    public bool DailyTasks = true;
-    
-    [ConfigOption("EnableWeeklyTasks")]
-    public bool WeeklyTasks = true;
-    
-    [ConfigOption("EnableSpecialTasks")]
-    public bool SpecialTasks = true;
-
-    [ConfigOption("ShowHeaders")]
-    public bool ShowHeaders = true;
-
-    [ConfigOption("HideInQuestEvent")]
-    public bool HideDuringQuests = true;
-    
-    [ConfigOption("HideInDuties")]
-    public bool HideInDuties = true;
-
-    [ConfigOption("HeaderItalic")]
-    public bool HeaderItalic = false;
-    
-    [ConfigOption("ModuleItalic")]
-    public bool ModuleItalic = false;
-
-    [ConfigOption("EnableOutline")]
-    public bool Edge = true;
-
-    [ConfigOption("EnableGlowingOutline")]
-    public bool Glare = false;
-    
-    [ConfigOption("DailyTasksLabel", true)]
-    public string DailyLabel = "Daily Tasks";
-    
-    [ConfigOption("WeeklyTasksLabel", true)]
-    public string WeeklyLabel = "Weekly Tasks";
-    
-    [ConfigOption("SpecialTasksLabel", true)]
-    public string SpecialLabel = "Special Tasks";
-
-    [ConfigOption("FontSize", 5, 48)]
-    public int FontSize = 20;
-
-    [ConfigOption("HeaderSize", 5, 48)] 
-    public int HeaderFontSize = 24;
-
-    [ConfigOption("CategorySpacing", 0, 100)]
-    public int CategorySpacing = 12;
-
-    [ConfigOption("HeaderSpacing", 0, 100)]
-    public int HeaderSpacing = 0;
-    
-    [ConfigOption("ModuleSpacing", 0, 100)]
-    public int ModuleSpacing = 0;
-    
-    [ConfigOption("CategoryBackgroundColor", 0.0f, 0.0f, 0.0f, 0.40f)]
-    public Vector4 CategoryBackgroundColor = new(0.0f, 0.0f, 0.0f, 0.4f);
-    
-    [ConfigOption("HeaderColor", 1.0f, 1.0f, 1.0f, 1.0f)]
-    public Vector4 HeaderTextColor = new(1.0f, 1.0f, 1.0f, 1.0f);
-
-    [ConfigOption("HeaderOutlineColor", 0.5568f, 0.4117f, 0.0470f, 1.0f)]
-    public Vector4 HeaderTextOutline = new(0.5568f, 0.4117f, 0.0470f, 1.0f);
-    
-    [ConfigOption("ModuleTextColor", 1.0f, 1.0f, 1.0f, 1.0f)]
-    public Vector4 ModuleTextColor = new(1.0f, 1.0f, 1.0f, 1.0f);
-
-    [ConfigOption("ModuleOutlineColor", 0.0392f, 0.4117f, 0.5725f, 1.0f)]
-    public Vector4 ModuleOutlineColor = new(0.0392f, 0.4117f, 0.5725f, 1.0f);
-}
 
 public class TodoController : IDisposable
 {
     public TodoConfig Config = new();
     private bool configChanged;
-    private readonly TodoCommands todoCommands = new();
     private TodoUiController? uiController;
     private Vector2? holdOffset;
+    private readonly Dictionary<ModuleName, DisplayData> displayDataCache = new();
+    private record DisplayData(bool ShowModule, bool ShowHeader, bool ShowCategory);
 
     public void Dispose() => Unload();
     
@@ -121,15 +36,14 @@ public class TodoController : IDisposable
     {
         PluginLog.Debug($"[TodoConfig] Loading Todo System");
         
-        KamiCommon.CommandManager.RemoveCommand(todoCommands);
-        KamiCommon.CommandManager.AddCommand(todoCommands);
+        CommandController.RegisterCommands(this);
         Config = LoadConfig();
         
         uiController ??= new TodoUiController();
 
         foreach (var module in DailyDutySystem.ModuleController.GetModules())
         {
-            module.ModuleConfig.TodoOptions.StyleChanged = true;
+            module.ModuleConfig.StyleChanged = true;
         }
     }
     
@@ -137,26 +51,22 @@ public class TodoController : IDisposable
     {
         PluginLog.Debug("[TodoConfig] Unloading Todo System");
         
-        KamiCommon.CommandManager.RemoveCommand(todoCommands);
-
+        CommandController.UnregisterCommands(this);
+        
         uiController?.Dispose();
         uiController = null;
     }
     
     public void DrawConfig()
     {
-        var configOptions = AttributeHelper.GetFieldAttributes<ConfigOption>(Config);
-        
-        TodoEnableView.Draw(Config, SaveConfig);
-        GenericConfigView.Draw(configOptions, Config, () =>
+        DrawableAttribute.DrawAttributes(Config, () =>
         {
             SaveConfig();
             foreach (var module in DailyDutySystem.ModuleController.GetModules())
             {
-                module.ModuleConfig.TodoOptions.StyleChanged = true;
+                module.ModuleConfig.StyleChanged = true;
             }
-            
-        }, Strings.TodoDisplayConfiguration);
+        });
     }
 
     public void DrawExtras()
@@ -172,7 +82,7 @@ public class TodoController : IDisposable
 
             ImGui.SetNextWindowPos(position);
             ImGui.SetNextWindowSize(size);
-            if (ImGui.Begin("##todoDrag", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoBackground))
+            if (ImGui.Begin("##DailyDutyTodoDrag", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoBackground))
             {
                 ImGui.GetBackgroundDrawList().AddRect(position, position + size, ImGui.GetColorU32(new Vector4(1.0f, 0.0f, 0.0f, 1.0f)), 0.0f, ImDrawFlags.RoundCornersNone, 2.0f);
                 
@@ -191,6 +101,14 @@ public class TodoController : IDisposable
                 {
                     holdOffset = null;
                 }
+                
+                var textPosition = position with { Y = position.Y + size.Y };
+                
+                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition - new Vector2(1, 0), ImGui.GetColorU32(KnownColor.Black.AsVector4()), Strings.WindowDraggingEnabled);
+                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition - new Vector2(0, 1), ImGui.GetColorU32(KnownColor.Black.AsVector4()), Strings.WindowDraggingEnabled);
+                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition + new Vector2(0, 1), ImGui.GetColorU32(KnownColor.Black.AsVector4()), Strings.WindowDraggingEnabled);
+                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition + new Vector2(1, 0), ImGui.GetColorU32(KnownColor.Black.AsVector4()), Strings.WindowDraggingEnabled);
+                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition, ImGui.GetColorU32(KnownColor.OrangeRed.AsVector4()), Strings.WindowDraggingEnabled);
             }
             
             ImGui.End();
@@ -209,6 +127,7 @@ public class TodoController : IDisposable
         
             if(Config.HideDuringQuests && Condition.IsInQuestEvent()) uiController?.Show(false);
             if(Config.HideInDuties && Condition.IsBoundByDuty()) uiController?.Show(false);
+            if(Condition.IsDutyRecorderPlayback()) uiController?.Show(false);
         
             uiController?.Update(Config);
         }
@@ -221,24 +140,36 @@ public class TodoController : IDisposable
     {
         foreach (var module in DailyDutySystem.ModuleController.GetModules(type))
         {
-            if (enabled && module.ModuleConfig.TodoOptions.StyleChanged)
+            var wasStyleChanged = module.ModuleConfig.StyleChanged;
+
+            if (enabled && wasStyleChanged)
             {
                 uiController?.UpdateModuleStyle(type, module.ModuleName, GetModuleTextStyleOptions(module));
                 uiController?.UpdateHeaderStyle(type, HeaderOptions);
                 uiController?.UpdateCategoryStyle(type, BackgroundImageOptions);
                     
-                module.ModuleConfig.TodoOptions.StyleChanged = false;
+                module.ModuleConfig.StyleChanged = false;
             }
-            
-            uiController?.UpdateModule(type, module.ModuleName, GetModuleTodoLabel(module), module.GetTooltip(), GetModuleActiveState(module) && enabled || Config.PreviewMode);
-            uiController?.UpdateCategoryHeader(type, GetCategoryLabel(type), Config.ShowHeaders);
-            uiController?.UpdateCategory(type, enabled);
+
+            var name = module.ModuleName;
+            var display = new DisplayData(
+                GetModuleActiveState(module) && enabled || Config.PreviewMode,
+                Config.ShowHeaders,
+                enabled);
+
+            if (!displayDataCache.TryGetValue(name, out var cached) || !cached.Equals(display) || wasStyleChanged)
+            {
+                uiController?.UpdateModule(type, name, GetModuleTodoLabel(module), display.ShowModule);
+                uiController?.UpdateCategoryHeader(type, GetCategoryLabel(type), display.ShowHeader);
+                uiController?.UpdateCategory(type, display.ShowCategory);
+                displayDataCache[name] = display;
+            }
         }
     }
     
     private string GetModuleTodoLabel(BaseModule module)
     {
-        var todoOptions = module.ModuleConfig.TodoOptions;
+        var todoOptions = module.ModuleConfig;
 
         if (todoOptions.UseCustomTodoLabel && todoOptions.CustomTodoLabel != string.Empty)
         {
@@ -251,10 +182,52 @@ public class TodoController : IDisposable
     private bool GetModuleActiveState(BaseModule module)
     {
         if (!module.ModuleConfig.ModuleEnabled) return false;
-        if (!module.ModuleConfig.TodoOptions.Enabled) return false;
+        if (!module.ModuleConfig.TodoEnabled) return false;
         if (module.ModuleStatus is not ModuleStatus.Incomplete) return false;
 
         return true;
+    }
+
+    [DoubleTierCommandHandler("TodoEnable", "todo", "enable")]
+    private void ShowTodoCommand(params string[]? _)
+    {
+        if (!Service.ClientState.IsLoggedIn) return;
+        if (Service.ClientState.IsPvP)
+        {
+            Chat.PrintError("This command cannot be used while in a PvP area");
+            return;
+        }
+
+        Config.Enable = true;
+        SaveConfig();
+    }
+    
+    [DoubleTierCommandHandler("TodoDisable", "todo", "disable")]
+    private void HideTodoCommand(params string[]? _)
+    {
+        if (!Service.ClientState.IsLoggedIn) return;
+        if (Service.ClientState.IsPvP)
+        {
+            Chat.PrintError("This command cannot be used while in a PvP area");
+            return;
+        }
+
+        Config.Enable = false;
+        SaveConfig();
+    }
+    
+    [DoubleTierCommandHandler("TodoToggle", "todo", "toggle")]
+    private void ToggleTodoCommand(params string[]? _)
+    {
+        if (!Service.ClientState.IsLoggedIn) return;
+        if (Service.ClientState.IsPvP)
+        {
+            Chat.PrintError("This command cannot be used while in a PvP area");
+            return;
+        }
+
+        Config.Enable = !Config.Enable;
+        SaveConfig();
     }
 
     private string GetCategoryLabel(ModuleType type) => type switch
@@ -279,8 +252,8 @@ public class TodoController : IDisposable
     private TextNodeOptions GetModuleTextStyleOptions(BaseModule module) => new()
     {
         Alignment = AlignmentType.Left,
-        TextColor = module.ModuleConfig.TodoOptions.OverrideTextColor ? module.ModuleConfig.TodoOptions.TextColor : Config.ModuleTextColor,
-        EdgeColor = module.ModuleConfig.TodoOptions.OverrideTextColor ? module.ModuleConfig.TodoOptions.TextOutline : Config.ModuleOutlineColor,
+        TextColor = module.ModuleConfig.OverrideTextColor ? module.ModuleConfig.TodoTextColor : Config.ModuleTextColor,
+        EdgeColor = module.ModuleConfig.OverrideTextColor ? module.ModuleConfig.TodoTextOutline : Config.ModuleOutlineColor,
         BackgroundColor = KnownColor.White.AsVector4(),
         FontSize = (byte) Config.FontSize,
         Flags = GetModuleFlags(),
@@ -316,6 +289,6 @@ public class TodoController : IDisposable
     
     public void Show() => uiController?.Show(Config.Enable);
     public void Hide() => uiController?.Hide();
-    private TodoConfig LoadConfig() => (TodoConfig) FileController.LoadFile("Todo.config.json", Config);
-    public void SaveConfig() => FileController.SaveFile("Todo.config.json", Config.GetType(), Config);
+    private TodoConfig LoadConfig() => CharacterFileController.LoadFile<TodoConfig>("Todo.config.json", Config);
+    public void SaveConfig() => CharacterFileController.SaveFile("Todo.config.json", Config.GetType(), Config);
 }

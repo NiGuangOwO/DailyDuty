@@ -2,15 +2,15 @@
 using DailyDuty.Models;
 using Dalamud.Game;
 using Dalamud.Logging;
+using Dalamud.Plugin.Services;
+using KamiLib.Utilities;
 
 namespace DailyDuty.System;
 
 public class DailyDutySystem : IDisposable
 {
     public static ModuleController ModuleController = null!;
-    private readonly AddonController addonController;
     public readonly TodoController TodoController;
-    public readonly FontController FontController;
     public SystemConfig SystemConfig;
 
     public DailyDutySystem()
@@ -19,9 +19,7 @@ public class DailyDutySystem : IDisposable
         
         LocalizationController.Instance.Initialize();
         PayloadController.Instance.Initialize();
-        FontController = new FontController();
         ModuleController = new ModuleController();
-        addonController = new AddonController();
         TodoController = new TodoController();
 
         if (Service.ClientState.IsLoggedIn)
@@ -35,9 +33,9 @@ public class DailyDutySystem : IDisposable
         Service.ClientState.TerritoryChanged += OnZoneChange;
         Service.ClientState.EnterPvP += OnEnterPvP;
         Service.ClientState.LeavePvP += OnLeavePvP;
-        AddonController.AddonPreSetup += OnAddonPreSetup;
-        AddonController.AddonPostSetup += OnAddonPostSetup;
-        AddonController.AddonFinalize += OnAddonFinalize;
+        Service.AddonLifecycle.AddonPreSetup += OnAddonPreSetup;
+        Service.AddonLifecycle.AddonPostSetup += OnAddonPostSetup;
+        Service.AddonLifecycle.AddonPreFinalize += OnAddonFinalize;
         Service.PluginInterface.UiBuilder.Draw += OnDraw;
     }
 
@@ -49,14 +47,12 @@ public class DailyDutySystem : IDisposable
         Service.ClientState.TerritoryChanged -= OnZoneChange;
         Service.ClientState.EnterPvP -= OnEnterPvP;
         Service.ClientState.LeavePvP -= OnLeavePvP;
-        AddonController.AddonPreSetup -= OnAddonPreSetup;
-        AddonController.AddonPostSetup -= OnAddonPostSetup;
-        AddonController.AddonFinalize -= OnAddonFinalize;
+        Service.AddonLifecycle.AddonPreSetup -= OnAddonPreSetup;
+        Service.AddonLifecycle.AddonPostSetup -= OnAddonPostSetup;
+        Service.AddonLifecycle.AddonPreFinalize -= OnAddonFinalize;
         Service.PluginInterface.UiBuilder.Draw -= OnDraw;
 
-        FontController.Dispose();
         ModuleController.Dispose();
-        addonController.Dispose();
         TodoController.Dispose();
         LocalizationController.Cleanup();
         PayloadController.Cleanup();
@@ -109,25 +105,29 @@ public class DailyDutySystem : IDisposable
         ModuleController.ZoneChange(territoryTypeId);
     }
     
-    private void OnAddonPreSetup(AddonArgs addonInfo)
+    private void OnAddonPreSetup(IAddonLifecycle.AddonArgs addonInfo)
     {
         if (Service.ClientState.IsPvP) return;
         
         ModuleController.AddonPreSetup(addonInfo);
     }
     
-    private void OnAddonPostSetup(AddonArgs addonInfo)
+    private void OnAddonPostSetup(IAddonLifecycle.AddonArgs addonInfo)
     {
         if (Service.ClientState.IsPvP) return;
+        if (!Service.ClientState.IsLoggedIn) return;
+        if (Service.ClientState.LocalContentId is 0) return;
         
         ModuleController.AddonPostSetup(addonInfo);
 
         if (addonInfo.AddonName == "NamePlate") TodoController.Load();
     }
     
-    private void OnAddonFinalize(AddonArgs addonInfo)
+    private void OnAddonFinalize(IAddonLifecycle.AddonArgs addonInfo)
     {
         if (Service.ClientState.IsPvP) return;
+        if (!Service.ClientState.IsLoggedIn) return;
+        if (Service.ClientState.LocalContentId is 0) return;
         
         ModuleController.AddonFinalize(addonInfo);
         
@@ -140,7 +140,7 @@ public class DailyDutySystem : IDisposable
 
     private void LoadSystemConfig()
     {
-        SystemConfig = (SystemConfig) FileController.LoadFile("System.config.json", SystemConfig);
+        SystemConfig = CharacterFileController.LoadFile<SystemConfig>("System.config.json", SystemConfig);
         
         PluginLog.Debug($"[DailyDutySystem] Logging into character: {Service.ClientState.LocalPlayer?.Name}, updating System.config.json");
 
@@ -149,5 +149,5 @@ public class DailyDutySystem : IDisposable
         SaveSystemConfig();
     }
 
-    public void SaveSystemConfig() => FileController.SaveFile("System.config.json", SystemConfig.GetType(), SystemConfig);
+    public void SaveSystemConfig() => CharacterFileController.SaveFile("System.config.json", SystemConfig.GetType(), SystemConfig);
 }

@@ -3,12 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
-using DailyDuty.Models.Attributes;
+using System.Linq;
 using DailyDuty.System.Localization;
-using Dalamud.Interface;
 using ImGuiNET;
 using KamiLib.Caching;
 using KamiLib.Interfaces;
+using KamiLib.Utilities;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 
@@ -26,17 +26,12 @@ public class LuminaTaskDataList<T> : IDrawable, ICollection<LuminaTaskData<T>> w
     public bool Contains(LuminaTaskData<T> item) => DataList.Contains(item);
     public void CopyTo(LuminaTaskData<T>[] array, int arrayIndex) => DataList.CopyTo(array, arrayIndex);
     public bool Remove(LuminaTaskData<T> item) => DataList.Remove(item);
-
     public int Count => DataList.Count;
     public bool IsReadOnly => false;
     // End ICollection
     
     public void Draw()
     {
-        ImGui.Text(Strings.TaskData);
-        ImGui.Separator();
-        ImGuiHelpers.ScaledIndent(15.0f);
-
         if (ImGui.BeginTable("##TaskDataTable", 2, ImGuiTableFlags.SizingStretchSame))
         {
             switch (this)
@@ -61,11 +56,10 @@ public class LuminaTaskDataList<T> : IDrawable, ICollection<LuminaTaskData<T>> w
             
             ImGui.EndTable();
         }
-        
-        ImGuiHelpers.ScaledDummy(10.0f);
-        ImGuiHelpers.ScaledIndent(-15.0f);
     }
-    
+
+    public void Sort() => DataList = DataList.OrderBy(e => e.RowId).ToList();
+
     private void DrawStandardDataList()
     {
         foreach (var dataEntry in DataList)
@@ -157,6 +151,4 @@ public class LuminaTaskDataList<T> : IDrawable, ICollection<LuminaTaskData<T>> w
             task.CurrentCount = 0;
         }
     }
-    
-
 }

@@ -2,49 +2,39 @@
 using System.Linq;
 using DailyDuty.Abstracts;
 using DailyDuty.Models;
-using DailyDuty.Models.Attributes;
 using DailyDuty.Models.Enums;
 using DailyDuty.System.Helpers;
 using DailyDuty.System.Localization;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using KamiLib.Caching;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.GeneratedSheets;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
 namespace DailyDuty.System;
 
-public class MaskedCarnivaleConfig : ModuleConfigBase
-{
-    [SelectableTasks] 
-    public LuminaTaskConfigList<Addon> TaskConfig = new();
-
-    [ClickableLink("UldahTeleport")]
-    public bool ClickableLink = true;
-}
-
-public class MaskedCarnivaleData : ModuleDataBase
-{
-    [SelectableTasks] 
-    public LuminaTaskDataList<Addon> TaskData = new();
-}
-
 public unsafe class MaskedCarnivale : Module.WeeklyModule
 {
     public override ModuleName ModuleName => ModuleName.MaskedCarnivale;
 
-    public override ModuleConfigBase ModuleConfig { get; protected set; } = new MaskedCarnivaleConfig();
-    public override ModuleDataBase ModuleData { get; protected set; } = new MaskedCarnivaleData();
+    public override IModuleConfigBase ModuleConfig { get; protected set; } = new MaskedCarnivaleConfig();
+    public override IModuleDataBase ModuleData { get; protected set; } = new ModuleTaskDataBase<Addon>();
     private MaskedCarnivaleConfig Config => ModuleConfig as MaskedCarnivaleConfig ?? new MaskedCarnivaleConfig();
-    private MaskedCarnivaleData Data => ModuleData as MaskedCarnivaleData ?? new MaskedCarnivaleData();
+    private ModuleTaskDataBase<Addon> Data => ModuleData as ModuleTaskDataBase<Addon> ?? new ModuleTaskDataBase<Addon>();
 
     private readonly AgentAozContentBriefing* agent = (AgentAozContentBriefing*) AgentModule.Instance()->GetAgentByInternalId(AgentId.AozContentBriefing);
+
+    public override bool HasClickableLink => true;
+    public override PayloadId ClickableLinkPayloadId => PayloadId.UldahTeleport;
+    
+    public override bool HasTooltip => true;
+    public override string TooltipText => string.Join("\n", GetIncompleteRows(Config.TaskConfig, Data.TaskData));
 
     protected override void UpdateTaskLists()
     {
         var luminaTaskUpdater = new LuminaTaskUpdater<Addon>(this, addon => addon.RowId is 12449 or 12448 or 12447);
         luminaTaskUpdater.UpdateConfig(Config.TaskConfig);
         luminaTaskUpdater.UpdateData(Data.TaskData);
-        
     }
 
     public override void Update()
@@ -72,17 +62,17 @@ public unsafe class MaskedCarnivale : Module.WeeklyModule
         base.Update();
     }
 
-    public override void AddonPostSetup(AddonArgs addonInfo)
+    public override void AddonPostSetup(IAddonLifecycle.AddonArgs addonInfo)
     {
         if (addonInfo.AddonName != "AOZContentResult") return;
 
-        var atkValues = addonInfo.Addon->AtkValues;
+        var atkValues = ((AtkUnitBase*)addonInfo.Addon)->AtkValues;
         
-        if(atkValues[109].Type != ValueType.UInt) throw new Exception("Type Mismatch Exception");
-        if(atkValues[111].Type != ValueType.Bool) throw new Exception("Type Mismatch Exception");
+        if(atkValues[112].Type != ValueType.UInt) throw new Exception("Type Mismatch Exception");
+        if(atkValues[114].Type != ValueType.Bool) throw new Exception("Type Mismatch Exception");
         
-        var completionIndex = atkValues[109].UInt;
-        var completionStatus = atkValues[111].Byte != 0;
+        var completionIndex = atkValues[112].UInt;
+        var completionStatus = atkValues[114].Byte != 0;
 
         var addonId = completionIndex switch
         {
@@ -111,9 +101,6 @@ public unsafe class MaskedCarnivale : Module.WeeklyModule
         
         base.Reset();
     }
-
-    public override bool HasTooltip { get; protected set; } = true;
-    public override string GetTooltip() => GetTaskListTooltip(Config.TaskConfig, Data.TaskData, row => LuminaCache<Addon>.Instance.GetRow(row)!.Text.ToString());
 
     protected override ModuleStatus GetModuleStatus() => GetIncompleteCount(Config.TaskConfig, Data.TaskData) == 0 ? ModuleStatus.Complete : ModuleStatus.Incomplete;
 

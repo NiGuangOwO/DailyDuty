@@ -1,25 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using DailyDuty.Models;
-using DailyDuty.Models.Attributes;
 using DailyDuty.Models.Enums;
-using DailyDuty.System;
-using DailyDuty.System.Helpers;
 using DailyDuty.System.Localization;
 using DailyDuty.Views.Components;
 using Dalamud.Game.Text;
 using Dalamud.Logging;
+using Dalamud.Plugin.Services;
+using KamiLib.AutomaticUserInterface;
 using KamiLib.GameState;
+using KamiLib.Utilities;
 using Lumina.Excel;
 
 namespace DailyDuty.Abstracts;
 
 public abstract class BaseModule : IDisposable
 {
-    public abstract ModuleDataBase ModuleData { get; protected set; }
-    public abstract ModuleConfigBase ModuleConfig { get; protected set; }
+    public abstract IModuleDataBase ModuleData { get; protected set; }
+    public abstract IModuleConfigBase ModuleConfig { get; protected set; }
     public abstract ModuleName ModuleName { get; }
     public abstract ModuleType ModuleType { get; }
     public ModuleStatus ModuleStatus => ModuleConfig.Suppressed ? ModuleStatus.Suppressed : GetModuleStatus();
@@ -34,40 +33,27 @@ public abstract class BaseModule : IDisposable
     protected XivChatType GetChatChannel() => ModuleConfig.UseCustomChannel ? ModuleConfig.MessageChatChannel : Service.PluginInterface.GeneralChatType;
     private readonly Stopwatch statusMessageLockout = new();
     
-    public virtual void AddonPreSetup(AddonArgs addonInfo) { }
-    public virtual void AddonPostSetup(AddonArgs addonInfo) { }
-    public virtual void AddonFinalize(AddonArgs addonInfo) { }
+    public virtual void AddonPreSetup(IAddonLifecycle.AddonArgs addonInfo) { }
+    public virtual void AddonPostSetup(IAddonLifecycle.AddonArgs addonInfo) { }
+    public virtual void AddonFinalize(IAddonLifecycle.AddonArgs addonInfo) { }
     protected virtual void UpdateTaskLists() { }
-    public virtual string GetTooltip() => string.Empty;
-    public virtual bool HasTooltip { get; protected set; }
+    public virtual bool HasTooltip { get; protected set; } = false;
+    public virtual string TooltipText { get; protected set; } = string.Empty;
+    public virtual bool HasClickableLink { get; protected set; } = false;
+    public virtual PayloadId ClickableLinkPayloadId { get; protected set; } = PayloadId.Unknown;
 
     public void DrawConfig()
     {
-        var configOptions = AttributeHelper.GetFieldAttributes<ConfigOption>(ModuleConfig);
-        var clickableLinks = AttributeHelper.GetFieldAttributes<ClickableLink>(ModuleConfig);
-        var selectableTasks = AttributeHelper.GetFieldAttributes<SelectableTasks>(ModuleConfig);
-        var todoOptions = AttributeHelper.GetFieldAttributes<ConfigOption>(ModuleConfig.TodoOptions);
-        
-        ModuleEnableView.Draw(ModuleConfig, SaveConfig);
-        ModuleClickableLinkConfigView.Draw(clickableLinks, ModuleConfig, SaveConfig);
-        GenericConfigView.Draw(configOptions, ModuleConfig, SaveConfig, Strings.ModuleConfiguration);
-        ModuleSelectableTaskView.DrawConfig(selectableTasks.FirstOrDefault().Item1, ModuleConfig, SaveConfig);
-        ModuleNotificationOptionsView.Draw(ModuleConfig, SaveConfig);
-        GenericConfigView.Draw(todoOptions, ModuleConfig.TodoOptions, () => {
+        DrawableAttribute.DrawAttributes(ModuleConfig, () => {
             SaveConfig();
-            ModuleConfig.TodoOptions.StyleChanged = true;
-        }, Strings.TodoConfiguration);
+            ModuleConfig.StyleChanged = true;
+        });
     }
 
     public void DrawData()
     {
-        var dataDisplay = AttributeHelper.GetFieldAttributes<DataDisplay>(ModuleData);
-        var taskSelection = AttributeHelper.GetFieldAttributes<SelectableTasks>(ModuleData);
-
         ModuleStatusView.Draw(this);
-        ModuleResetView.Draw(ModuleData);
-        ModuleDataView.Draw(dataDisplay, ModuleData);
-        ModuleSelectableTaskView.DrawData(taskSelection.FirstOrDefault().Item1, ModuleData);
+        DrawableAttribute.DrawAttributes(ModuleData);
         ModuleSuppressionView.Draw(ModuleConfig, SaveConfig);
     }
 
@@ -130,10 +116,10 @@ public abstract class BaseModule : IDisposable
         }
     }
     
-    private ModuleConfigBase LoadConfig() => (ModuleConfigBase) FileController.LoadFile($"{ModuleName}.config.json", ModuleConfig);
-    private ModuleDataBase LoadData() => (ModuleDataBase) FileController.LoadFile($"{ModuleName}.data.json", ModuleData);
-    public void SaveConfig() => FileController.SaveFile($"{ModuleName}.config.json", ModuleConfig.GetType(), ModuleConfig);
-    public void SaveData() => FileController.SaveFile($"{ModuleName}.data.json", ModuleData.GetType(), ModuleData);
+    private IModuleConfigBase LoadConfig() => CharacterFileController.LoadFile<IModuleConfigBase>($"{ModuleName}.config.json", ModuleConfig);
+    private IModuleDataBase LoadData() => CharacterFileController.LoadFile<IModuleDataBase>($"{ModuleName}.data.json", ModuleData);
+    public void SaveConfig() => CharacterFileController.SaveFile($"{ModuleName}.config.json", ModuleConfig.GetType(), ModuleConfig);
+    public void SaveData() => CharacterFileController.SaveFile($"{ModuleName}.data.json", ModuleData.GetType(), ModuleData);
 
     private void SendStatusMessage()
     {
@@ -171,50 +157,59 @@ public abstract class BaseModule : IDisposable
         statusMessage.PrintMessage();
     }
 
-    protected void TryUpdateData<T>(ref T value, T newValue) where T : IEquatable<T>
+    protected T TryUpdateData<T>(T value, T newValue) where T : IEquatable<T>
     {
         if (!value.Equals(newValue))
         {
-            value = newValue;
             DataChanged = true;
+            return newValue;
         }
+
+        return value;
     }
     
     protected static int GetIncompleteCount<T>(LuminaTaskConfigList<T> config, LuminaTaskDataList<T> data) where T : ExcelRow
     {
-        if (config.Count != data.Count) throw new Exception("Task and Data array size are mismatched. Unable to calculate IncompleteCount");
+        if (config.Count != data.Count) throw new Exception("Task and Data array size are mismatched. Unable to calculate IncompleteCount.");
 
-        var queryResult = 
-            from configTask in config
-            join dataTask in data on configTask.RowId equals dataTask.RowId
-            where 
-                (configTask.Enabled && configTask.TargetCount is not 0 && dataTask.CurrentCount < configTask.TargetCount) ||
-                (configTask.Enabled && configTask.TargetCount is 0 && !dataTask.Complete)
-            select configTask;
+        var count = 0;
+        for (var i = 0; i < config.Count; i++)
+        {
+            var configTask = config.ConfigList[i];
+            var dataTask = data.DataList[i];
 
-        return queryResult.Count();
+            if (configTask.RowId != dataTask.RowId) throw new Exception($"Task and Data rows are mismatched. Unable to calculate IncompleteCount.\nConfig RowId: {configTask.RowId} Data RowId: {dataTask.RowId}.");
+
+            if (configTask.Enabled)
+            {
+                var isCountableTaskIncomplete = configTask.TargetCount != 0 && dataTask.CurrentCount < configTask.TargetCount;
+                var isNonCountableTaskIncomplete = configTask.TargetCount == 0 && !dataTask.Complete;
+                
+                if (isCountableTaskIncomplete || isNonCountableTaskIncomplete) count++;
+            }
+        }
+
+        return count;
     }
 
-    protected static IEnumerable<uint> GetIncompleteRows<T>(LuminaTaskConfigList<T> config, LuminaTaskDataList<T> data) where T : ExcelRow
+    protected static IEnumerable<string> GetIncompleteRows<T>(LuminaTaskConfigList<T> config, LuminaTaskDataList<T> data) where T : ExcelRow
     {
-        if (config.Count != data.Count) throw new Exception("Task and Data array size are mismatched. Unable to calculate IncompleteCount");
+        if (config.Count != data.Count) throw new Exception("Task and Data array size are mismatched. Unable to calculate IncompleteCount.");
 
-        var queryResult = 
-            from configTask in config
-            join dataTask in data on configTask.RowId equals dataTask.RowId
-            where 
-                (configTask.Enabled && configTask.TargetCount is not 0 && dataTask.CurrentCount < configTask.TargetCount) ||
-                (configTask.Enabled && configTask.TargetCount is 0 && !dataTask.Complete)
-            select configTask.RowId;
+        for (var i = 0; i < config.Count; i++)
+        {
+            var configTask = config.ConfigList[i];
+            var dataTask = data.DataList[i];
 
-        return queryResult;
-    }
+            if (configTask.RowId != dataTask.RowId) throw new Exception($"Task and Data rows are mismatched. Unable to calculate IncompleteCount.\nConfig RowId: {configTask.RowId} Data RowId: {dataTask.RowId}.");
 
-    protected static string GetTaskListTooltip<T>(LuminaTaskConfigList<T> config, LuminaTaskDataList<T> data, Func<uint, string> getLuminaString) where T : ExcelRow
-    {
-        var strings = GetIncompleteRows(config, data)
-            .Select(getLuminaString).ToList();
-
-        return string.Join("\n", strings);
+            if (configTask.Enabled)
+            {
+                var isCountableTaskIncomplete = configTask.TargetCount != 0 && dataTask.CurrentCount < configTask.TargetCount;
+                var isNonCountableTaskIncomplete = configTask.TargetCount == 0 && !dataTask.Complete;
+                
+                if (isCountableTaskIncomplete || isNonCountableTaskIncomplete) yield return configTask.GetLabel();
+            }
+        }
     }
 }

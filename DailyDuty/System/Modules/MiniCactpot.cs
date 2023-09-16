@@ -1,31 +1,23 @@
 ﻿using DailyDuty.Abstracts;
 using DailyDuty.Interfaces;
 using DailyDuty.Models;
-using DailyDuty.Models.Attributes;
 using DailyDuty.Models.Enums;
+using DailyDuty.Models.ModuleData;
 using DailyDuty.System.Localization;
+using Dalamud.Plugin.Services;
 
 namespace DailyDuty.System;
 
-public class MiniCactpotConfig : ModuleConfigBase
-{
-    [ClickableLink("GoldSaucerTeleport")]
-    public bool ClickableLink = true;
-}
-
-public class MiniCactpotData : ModuleDataBase
-{
-    [DataDisplay("TicketsRemaining")]
-    public int AllowancesRemaining = 3;
-}
-
 public unsafe class MiniCactpot : Module.DailyModule, IGoldSaucerMessageReceiver
 {
-    public override ModuleDataBase ModuleData { get; protected set; } = new MiniCactpotData();
-    public override ModuleConfigBase ModuleConfig { get; protected set; } = new MiniCactpotConfig();
+    public override IModuleDataBase ModuleData { get; protected set; } = new MiniCactpotData();
+    public override IModuleConfigBase ModuleConfig { get; protected set; } = new MiniCactpotConfig();
     private MiniCactpotData Data => ModuleData as MiniCactpotData ?? new MiniCactpotData();
     private MiniCactpotConfig Config => ModuleConfig as MiniCactpotConfig ?? new MiniCactpotConfig()
     ;public override ModuleName ModuleName => ModuleName.MiniCactpot;
+    
+    public override bool HasClickableLink => true;
+    public override PayloadId ClickableLinkPayloadId => PayloadId.GoldSaucerTeleport;
 
     public override void Reset()
     {
@@ -43,7 +35,7 @@ public unsafe class MiniCactpot : Module.DailyModule, IGoldSaucerMessageReceiver
         return ConditionalStatusMessage.GetMessage(Config.ClickableLink, message, PayloadId.GoldSaucerTeleport);
     }
 
-    public override void AddonPreSetup(AddonArgs addonInfo)
+    public override void AddonPreSetup(IAddonLifecycle.AddonArgs addonInfo)
     {
         if (addonInfo.AddonName != "LotteryDaily") return;
 
