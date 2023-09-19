@@ -183,7 +183,7 @@
         <value>通知选项</value>
     </data>
   <data name="NotificationCustomization" xml:space="preserve">
-        <value>自定义通知</value>
+        <value>Notification Customization</value>
     </data>
   <data name="EnableCustomResetMessage" xml:space="preserve">
         <value>启用自定义重置消息</value>
@@ -238,7 +238,7 @@
         <value>任务数据</value>
     </data>
   <data name="ModuleStatus" xml:space="preserve">
-        <value>模块状态</value>
+        <value>Module Status</value>
     </data>
   <data name="CurrentStatus" xml:space="preserve">
         <value>当前状态</value>
@@ -635,5 +635,35 @@
     </data>
   <data name="Dragable" xml:space="preserve">
         <value>启用窗口拖动</value>
+    </data>
+  <data name="Positioning" xml:space="preserve">
+        <value>Positioning</value>
+    </data>
+  <data name="Categories" xml:space="preserve">
+        <value>Categories</value>
+    </data>
+  <data name="DisplayOptions" xml:space="preserve">
+        <value>Display Options</value>
+    </data>
+  <data name="TextStyle" xml:space="preserve">
+        <value>Text Style</value>
+    </data>
+  <data name="LabelText" xml:space="preserve">
+        <value>Label Text</value>
+    </data>
+  <data name="DisplayStyle" xml:space="preserve">
+        <value>Display Style</value>
+    </data>
+  <data name="ColorOptions" xml:space="preserve">
+        <value>Color Options</value>
+    </data>
+  <data name="OpenConfigWindow" xml:space="preserve">
+        <value>Open Configuration Window</value>
+    </data>
+  <data name="HelpText" xml:space="preserve">
+        <value>Show This Message</value>
+    </data>
+  <data name="WindowDraggingEnabled" xml:space="preserve">
+        <value>Window Dragging Enabled</value>
     </data>
 </root>
