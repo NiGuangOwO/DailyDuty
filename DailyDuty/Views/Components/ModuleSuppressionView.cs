@@ -49,7 +49,7 @@ public static class ModuleSuppressionView
         
         if (ImGui.IsItemHovered() && !hotkeyPressed)
         {
-            ImGui.SetTooltip("Hold Shift + Control while clicking activate button");
+            ImGui.SetTooltip("按住 Shift + Control 键来激活按钮");
         }
         
         ImGuiHelpers.ScaledDummy(10.0f);

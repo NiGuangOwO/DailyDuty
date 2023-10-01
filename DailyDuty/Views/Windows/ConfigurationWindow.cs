@@ -14,7 +14,7 @@ public class ConfigurationWindow : TabbedSelectionWindow
     private readonly List<ISelectionWindowTab> tabs;
     private readonly List<ITabItem> regularTabs;
     
-    public ConfigurationWindow() : base("DailyDuty - Configuration Window", 55.0f)
+    public ConfigurationWindow() : base("DailyDuty - 配置窗口", 55.0f)
     {
         tabs = new List<ISelectionWindowTab>
         {
