@@ -55,7 +55,7 @@ public unsafe class TodoUiController : IDisposable
             TextColor = KnownColor.OrangeRed.AsVector4(),
             FontSize = 16
         });
-        previewModeTextNode.Node->SetText("Preview Mode is Enabled");
+        previewModeTextNode.Node->SetText("预览模式已启用");
         rootNode.AddResourceNode(previewModeTextNode, AddonNamePlate);
 
         foreach (var category in Enum.GetValues<ModuleType>())
