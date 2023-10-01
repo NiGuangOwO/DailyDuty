@@ -637,7 +637,7 @@
         <value>启用窗口拖动</value>
     </data>
   <data name="Positioning" xml:space="preserve">
-        <value>定位中</value>
+        <value>位置</value>
     </data>
   <data name="Categories" xml:space="preserve">
         <value>类别</value>
