@@ -4,9 +4,9 @@ using System.Drawing;
 using System.Numerics;
 using DailyDuty.Models;
 using DailyDuty.Models.Enums;
+using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiLib.Atk;
-using KamiLib.Utilities;
+using KamiLib.NativeUi;
 
 namespace DailyDuty.System;
 
@@ -50,9 +50,9 @@ public unsafe class TodoUiController : IDisposable
             Alignment = AlignmentType.Center,
             Flags = TextFlags.Edge,
             Type = NodeType.Text,
-            BackgroundColor = KnownColor.Black.AsVector4(),
-            EdgeColor = KnownColor.Black.AsVector4(),
-            TextColor = KnownColor.OrangeRed.AsVector4(),
+            BackgroundColor = KnownColor.Black.Vector(),
+            EdgeColor = KnownColor.Black.Vector(),
+            TextColor = KnownColor.OrangeRed.Vector(),
             FontSize = 16
         });
         previewModeTextNode.Node->SetText("预览模式已启用");

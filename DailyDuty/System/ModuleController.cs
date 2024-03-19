@@ -99,30 +99,6 @@ public class ModuleController : IDisposable
             module.ZoneChange(newZone);
         }
     }
-
-    public void AddonPreSetup(AddonArgs addonInfo)
-    {
-        foreach(var module in modules)
-        {
-            module.AddonPreSetup(addonInfo);
-        }
-    }
-    
-    public void AddonPostSetup(AddonArgs addonInfo)
-    {
-        foreach(var module in modules)
-        {
-            module.AddonPostSetup(addonInfo);
-        }
-    }
-    
-    public void AddonFinalize(AddonArgs addonInfo)
-    {
-        foreach (var module in modules)
-        {
-            module.AddonFinalize(addonInfo);
-        }
-    }
     
     private void OnGoldSaucerMessage(object? sender, GoldSaucerEventArgs e)
     {

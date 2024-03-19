@@ -1,14 +1,13 @@
 ﻿using System;
 using DailyDuty.Models;
-using Dalamud.Game;
-using Dalamud.Logging;
+using Dalamud.Plugin.Services;
+using KamiLib.FileIO;
 
 namespace DailyDuty.System;
 
 public class DailyDutySystem : IDisposable
 {
     public static ModuleController ModuleController = null!;
-    private readonly AddonController addonController;
     public readonly TodoController TodoController;
     public SystemConfig SystemConfig;
 
@@ -19,12 +18,11 @@ public class DailyDutySystem : IDisposable
         LocalizationController.Instance.Initialize();
         PayloadController.Instance.Initialize();
         ModuleController = new ModuleController();
-        addonController = new AddonController();
         TodoController = new TodoController();
 
         if (Service.ClientState.IsLoggedIn)
         {
-            OnLogin(this, EventArgs.Empty);
+            OnLogin();
         }
         
         Service.Framework.Update += OnFrameworkUpdate;
@@ -33,9 +31,6 @@ public class DailyDutySystem : IDisposable
         Service.ClientState.TerritoryChanged += OnZoneChange;
         Service.ClientState.EnterPvP += OnEnterPvP;
         Service.ClientState.LeavePvP += OnLeavePvP;
-        AddonController.AddonPreSetup += OnAddonPreSetup;
-        AddonController.AddonPostSetup += OnAddonPostSetup;
-        AddonController.AddonFinalize += OnAddonFinalize;
         Service.PluginInterface.UiBuilder.Draw += OnDraw;
     }
 
@@ -47,19 +42,15 @@ public class DailyDutySystem : IDisposable
         Service.ClientState.TerritoryChanged -= OnZoneChange;
         Service.ClientState.EnterPvP -= OnEnterPvP;
         Service.ClientState.LeavePvP -= OnLeavePvP;
-        AddonController.AddonPreSetup -= OnAddonPreSetup;
-        AddonController.AddonPostSetup -= OnAddonPostSetup;
-        AddonController.AddonFinalize -= OnAddonFinalize;
         Service.PluginInterface.UiBuilder.Draw -= OnDraw;
 
         ModuleController.Dispose();
-        addonController.Dispose();
         TodoController.Dispose();
         LocalizationController.Cleanup();
         PayloadController.Cleanup();
     }
 
-    private void OnFrameworkUpdate(Framework framework)
+    private void OnFrameworkUpdate(IFramework framework)
     {
         if (Service.ClientState.IsPvP) return;
         if (!Service.ClientState.IsLoggedIn) return;
@@ -74,20 +65,20 @@ public class DailyDutySystem : IDisposable
         TodoController.Update();
     }
     
-    private void OnLogin(object? sender, EventArgs e)
+    private void OnLogin()
     {
         LoadSystemConfig();
         
         ModuleController.LoadModules();
         
-        TodoController.Load();
+        TodoController.OnLogin();
     }
     
-    private void OnLogout(object? sender, EventArgs e)
+    private void OnLogout()
     {
         ModuleController.UnloadModules();
         
-        TodoController.Unload();
+        TodoController.OnLogout();
     }
     
     private void OnDraw()
@@ -98,41 +89,12 @@ public class DailyDutySystem : IDisposable
         TodoController.DrawExtras();
     }
     
-    private void OnZoneChange(object? sender, ushort territoryTypeId)
+    private void OnZoneChange(ushort territoryTypeId)
     {
         if (Service.ClientState.IsPvP) return;
         if (!Service.ClientState.IsLoggedIn) return;
         
         ModuleController.ZoneChange(territoryTypeId);
-    }
-    
-    private void OnAddonPreSetup(AddonArgs addonInfo)
-    {
-        if (Service.ClientState.IsPvP) return;
-        
-        ModuleController.AddonPreSetup(addonInfo);
-    }
-    
-    private void OnAddonPostSetup(AddonArgs addonInfo)
-    {
-        if (Service.ClientState.IsPvP) return;
-        if (!Service.ClientState.IsLoggedIn) return;
-        if (Service.ClientState.LocalContentId is 0) return;
-        
-        ModuleController.AddonPostSetup(addonInfo);
-
-        if (addonInfo.AddonName == "NamePlate") TodoController.Load();
-    }
-    
-    private void OnAddonFinalize(AddonArgs addonInfo)
-    {
-        if (Service.ClientState.IsPvP) return;
-        if (!Service.ClientState.IsLoggedIn) return;
-        if (Service.ClientState.LocalContentId is 0) return;
-        
-        ModuleController.AddonFinalize(addonInfo);
-        
-        if (addonInfo.AddonName == "NamePlate") TodoController.Unload();
     }
     
     private void OnLeavePvP() => TodoController.Show();
@@ -141,14 +103,14 @@ public class DailyDutySystem : IDisposable
 
     private void LoadSystemConfig()
     {
-        SystemConfig = FileController.LoadFile<SystemConfig>("System.config.json", SystemConfig);
+        SystemConfig = CharacterFileController.LoadFile<SystemConfig>("System.config.json", SystemConfig);
         
-        PluginLog.Debug($"[DailyDutySystem] Logging into character: {Service.ClientState.LocalPlayer?.Name}, updating System.config.json");
+        Service.Log.Debug($"[DailyDutySystem] Logging into character: {Service.ClientState.LocalPlayer?.Name}, updating System.config.json");
 
         SystemConfig.CharacterName = Service.ClientState.LocalPlayer?.Name.ToString() ?? "Unable to Read Name";
         SystemConfig.CharacterWorld = Service.ClientState.LocalPlayer?.HomeWorld.GameData?.Name.ToString() ?? "Unable to Read World";
         SaveSystemConfig();
     }
 
-    public void SaveSystemConfig() => FileController.SaveFile("System.config.json", SystemConfig.GetType(), SystemConfig);
+    public void SaveSystemConfig() => CharacterFileController.SaveFile("System.config.json", SystemConfig.GetType(), SystemConfig);
 }

@@ -8,16 +8,23 @@ using DailyDuty.System.Localization;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiLib.Hooking;
-using KamiLib.Utilities;
+using KamiLib.Game;
+using KamiLib.NativeUi;
 
 namespace DailyDuty.System;
 
 public unsafe class JumboCactpot : Module.SpecialModule, IGoldSaucerMessageReceiver
 {
     public override ModuleName ModuleName => ModuleName.JumboCactpot;
-    protected override DateTime GetNextReset() => Time.NextJumboCactpotReset();
-    
+    protected override DateTime GetNextReset() {
+        try {
+            return Time.NextJumboCactpotReset();
+        }
+        catch (Time.DatacenterException) {
+            return DateTime.UtcNow + TimeSpan.FromDays(1);
+        }
+    }
+
     public override IModuleConfigBase ModuleConfig { get; protected set; } = new JumboCactpotConfig();
     public override IModuleDataBase ModuleData { get; protected set; } = new JumboCactpotData();
     private JumboCactpotConfig Config => ModuleConfig as JumboCactpotConfig ?? new JumboCactpotConfig();
@@ -35,7 +42,7 @@ public unsafe class JumboCactpot : Module.SpecialModule, IGoldSaucerMessageRecei
     {
         base.Load();
 
-        onReceiveEventHook ??= Hook<Delegates.AgentReceiveEvent>.FromAddress(new nint(AgentModule.Instance()->GetAgentByInternalId(AgentId.LotteryWeekly)->VTable->ReceiveEvent), OnReceiveEvent);
+        onReceiveEventHook ??= Service.Hooker.HookFromAddress<Delegates.AgentReceiveEvent>(new nint(AgentModule.Instance()->GetAgentByInternalId(AgentId.LotteryWeekly)->VTable->ReceiveEvent), OnReceiveEvent);
         onReceiveEventHook?.Enable();
     }
 

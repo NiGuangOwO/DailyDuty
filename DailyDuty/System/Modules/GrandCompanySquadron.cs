@@ -7,12 +7,13 @@ using DailyDuty.Models;
 using DailyDuty.Models.Enums;
 using DailyDuty.Models.ModuleData;
 using DailyDuty.System.Localization;
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiLib.Atk;
-using KamiLib.Caching;
-using KamiLib.Hooking;
+using KamiLib.Game;
+using KamiLib.NativeUi;
 using Lumina.Excel.GeneratedSheets;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
@@ -33,7 +34,7 @@ public unsafe partial class GrandCompanySquadron : Module.WeeklyModule
     private static partial Regex Alphanumeric();
     
     private readonly Dictionary<string, GcArmyExpedition> missionLookup = new();
-
+    
     public GrandCompanySquadron()
     {
         foreach (var mission in LuminaCache<GcArmyExpedition>.Instance)
@@ -46,23 +47,25 @@ public unsafe partial class GrandCompanySquadron : Module.WeeklyModule
     {
         base.Load();
 
-        onReceiveEventHook ??= Hook<Delegates.AgentReceiveEvent>.FromAddress(new nint(Agent->AgentInterface.VTable->ReceiveEvent), OnReceiveEvent);
+        Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "GcArmyExpeditionResult", GcArmyExpeditionResultPreFinalize);
+        
+        onReceiveEventHook ??= Service.Hooker.HookFromAddress<Delegates.AgentReceiveEvent>(new nint(Agent->AgentInterface.VTable->ReceiveEvent), OnReceiveEvent);
         onReceiveEventHook?.Enable();
     }
 
     // The mission is no longer in progress when the window closes
-    public override void AddonFinalize(AddonArgs addonInfo)
+    public void GcArmyExpeditionResultPreFinalize(AddonEvent eventType, AddonArgs addonInfo)
     {
-        if (addonInfo.AddonName != "GcArmyExpeditionResult") return;
-
+        var addon = (AtkUnitBase*) addonInfo.Addon;
+        
         Data.MissionStarted = false;
         DataChanged = true;
 
-        if (addonInfo.Addon->AtkValues[4].Type is not ValueType.String) throw new Exception("Type Mismatch Exception");
-        if (addonInfo.Addon->AtkValues[2].Type is not ValueType.Int) throw new Exception("Type Mismatch Exception");
+        if (addon->AtkValues[4].Type is not ValueType.String) throw new Exception("Type Mismatch Exception");
+        if (addon->AtkValues[2].Type is not ValueType.Int) throw new Exception("Type Mismatch Exception");
         
-        var missionText = Alphanumeric().Replace(addonInfo.Addon->AtkValues[4].GetString().ToLower(), string.Empty);
-        var missionSuccessful = addonInfo.Addon->AtkValues[2].Int == 1;
+        var missionText = Alphanumeric().Replace(addon->AtkValues[4].GetString().ToLower(), string.Empty);
+        var missionSuccessful = addon->AtkValues[2].Int == 1;
 
         var missionInfo = LuminaCache<GcArmyExpedition>.Instance
             .FirstOrDefault(mission => Alphanumeric().Replace(mission.Name.ToString().ToLower(), string.Empty) == missionText);
@@ -77,6 +80,8 @@ public unsafe partial class GrandCompanySquadron : Module.WeeklyModule
     public override void Unload()
     {
         base.Unload();
+        
+        Service.AddonLifecycle.UnregisterListener(GcArmyExpeditionResultPreFinalize);
         
         onReceiveEventHook?.Disable();
     }

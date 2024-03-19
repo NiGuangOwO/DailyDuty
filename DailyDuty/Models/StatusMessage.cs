@@ -2,7 +2,7 @@
 using DailyDuty.Models.Enums;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
-using KamiLib.Utilities;
+using KamiLib.Utility;
 
 namespace DailyDuty.Models;
 
@@ -21,11 +21,11 @@ public class StatusMessage
             Type = MessageChannel,
             Message = new SeStringBuilder()
                 .AddUiForeground($"[{dailyDutyLabel}] ", 45)
-                .AddUiForeground($"[{SourceModule.GetLabel()}] ", 62)
+                .AddUiForeground($"[{SourceModule.Label()}] ", 62)
                 .AddText(Message)
                 .Build()
         };
         
-        Service.Chat.PrintChat(message);
+        Service.Chat.Print(message);
     }
 }

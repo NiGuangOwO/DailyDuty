@@ -8,9 +8,8 @@ using DailyDuty.Models.ModuleData;
 using DailyDuty.System.Localization;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using KamiLib.Caching;
+using KamiLib.Game;
 using Lumina.Excel.GeneratedSheets;
-using Condition = KamiLib.GameState.Condition;
 
 namespace DailyDuty.System;
 
@@ -47,12 +46,12 @@ public unsafe class TreasureMap : Module.SpecialModule
 
     public override void Update()
     {
-        if (Condition.CheckFlag(ConditionFlag.Gathering42) && !gatheringStarted)
+        if (Service.Condition[ConditionFlag.Gathering42] && !gatheringStarted)
         {
             gatheringStarted = true;
             OnGatheringStart();
         } 
-        else if (!Condition.CheckFlag(ConditionFlag.Gathering42) && gatheringStarted)
+        else if (!Service.Condition[ConditionFlag.Gathering42] && gatheringStarted)
         {
             gatheringStarted = false;
             OnGatheringStop();

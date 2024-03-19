@@ -8,16 +8,18 @@ using DailyDuty.Abstracts;
 using DailyDuty.Models;
 using DailyDuty.Models.Enums;
 using DailyDuty.System.Localization;
-using Dalamud.Logging;
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 using KamiLib;
-using KamiLib.Atk;
 using KamiLib.AutomaticUserInterface;
-using KamiLib.ChatCommands;
-using KamiLib.Commands;
-using KamiLib.GameState;
-using KamiLib.Utilities;
+using KamiLib.Command;
+using KamiLib.FileIO;
+using KamiLib.Game;
+using KamiLib.NativeUi;
+using KamiLib.System;
+using KamiLib.Utility;
 
 namespace DailyDuty.System;
 
@@ -30,16 +32,40 @@ public class TodoController : IDisposable
     private readonly Dictionary<ModuleName, DisplayData> displayDataCache = new();
     private record DisplayData(bool ShowModule, bool ShowHeader, bool ShowCategory);
 
-    public void Dispose() => Unload();
-    
-    public void Load()
+    public void Dispose()
+    { 
+        UnloadUi();
+    }
+
+    public void OnLogin()
     {
-        PluginLog.Debug($"[TodoConfig] Loading Todo System");
+        // Once we are logged in, we need to listen for nameplate setups and destroys to unload and reload the ui if they do verminion/aestetician
+        Service.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "NamePlate", (_, _) => LoadUi());
+        Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "NamePlate", (_, _) => UnloadUi());
         
         CommandController.RegisterCommands(this);
-        Config = LoadConfig();
         
-        uiController ??= new TodoUiController();
+        LoadUi();
+    }
+
+    public void OnLogout()
+    {
+        Service.AddonLifecycle.UnregisterListener(AddonEvent.PostSetup, "NamePlate");
+        Service.AddonLifecycle.UnregisterListener(AddonEvent.PreFinalize, "NamePlate");
+        
+        CommandController.UnregisterCommands(this);
+        
+        UnloadUi();
+    }
+    
+    public void LoadUi()
+    {
+        if (uiController is not null) return;
+        
+        Service.Log.Debug("[TodoConfig] Loading Todo Ui System");
+        
+        Config = LoadConfig();
+        uiController = new TodoUiController();
 
         foreach (var module in DailyDutySystem.ModuleController.GetModules())
         {
@@ -47,13 +73,14 @@ public class TodoController : IDisposable
         }
     }
     
-    public void Unload()
+    public void UnloadUi()
     {
-        PluginLog.Debug("[TodoConfig] Unloading Todo System");
+        if (uiController is null) return;
         
+        Service.Log.Debug("[TodoConfig] Unloading Todo Ui System");
         CommandController.UnregisterCommands(this);
         
-        uiController?.Dispose();
+        uiController.Dispose();
         uiController = null;
     }
     
@@ -104,11 +131,11 @@ public class TodoController : IDisposable
                 
                 var textPosition = position with { Y = position.Y + size.Y };
                 
-                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition - new Vector2(1, 0), ImGui.GetColorU32(KnownColor.Black.AsVector4()), Strings.WindowDraggingEnabled);
-                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition - new Vector2(0, 1), ImGui.GetColorU32(KnownColor.Black.AsVector4()), Strings.WindowDraggingEnabled);
-                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition + new Vector2(0, 1), ImGui.GetColorU32(KnownColor.Black.AsVector4()), Strings.WindowDraggingEnabled);
-                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition + new Vector2(1, 0), ImGui.GetColorU32(KnownColor.Black.AsVector4()), Strings.WindowDraggingEnabled);
-                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition, ImGui.GetColorU32(KnownColor.OrangeRed.AsVector4()), Strings.WindowDraggingEnabled);
+                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition - new Vector2(1, 0), ImGui.GetColorU32(KnownColor.Black.Vector()), Strings.WindowDraggingEnabled);
+                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition - new Vector2(0, 1), ImGui.GetColorU32(KnownColor.Black.Vector()), Strings.WindowDraggingEnabled);
+                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition + new Vector2(0, 1), ImGui.GetColorU32(KnownColor.Black.Vector()), Strings.WindowDraggingEnabled);
+                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition + new Vector2(1, 0), ImGui.GetColorU32(KnownColor.Black.Vector()), Strings.WindowDraggingEnabled);
+                ImGui.GetBackgroundDrawList().AddText(KamiCommon.FontManager.Axis12.ImFont, 21, textPosition, ImGui.GetColorU32(KnownColor.OrangeRed.Vector()), Strings.WindowDraggingEnabled);
             }
             
             ImGui.End();
@@ -176,7 +203,7 @@ public class TodoController : IDisposable
             return todoOptions.CustomTodoLabel;
         }
 
-        return module.ModuleName.GetLabel();
+        return module.ModuleName.Label();
     }
 
     private bool GetModuleActiveState(BaseModule module)
@@ -243,7 +270,7 @@ public class TodoController : IDisposable
         Alignment = AlignmentType.Left,
         TextColor = Config.HeaderTextColor,
         EdgeColor = Config.HeaderTextOutline,
-        BackgroundColor = KnownColor.White.AsVector4(),
+        BackgroundColor = KnownColor.White.Vector(),
         FontSize = (byte) Config.HeaderFontSize,
         Flags = GetHeaderFlags(),
         Type = NodeType.Text,
@@ -254,7 +281,7 @@ public class TodoController : IDisposable
         Alignment = AlignmentType.Left,
         TextColor = module.ModuleConfig.OverrideTextColor ? module.ModuleConfig.TodoTextColor : Config.ModuleTextColor,
         EdgeColor = module.ModuleConfig.OverrideTextColor ? module.ModuleConfig.TodoTextOutline : Config.ModuleOutlineColor,
-        BackgroundColor = KnownColor.White.AsVector4(),
+        BackgroundColor = KnownColor.White.Vector(),
         FontSize = (byte) Config.FontSize,
         Flags = GetModuleFlags(),
         Type = NodeType.Text,
@@ -289,6 +316,6 @@ public class TodoController : IDisposable
     
     public void Show() => uiController?.Show(Config.Enable);
     public void Hide() => uiController?.Hide();
-    private TodoConfig LoadConfig() => FileController.LoadFile<TodoConfig>("Todo.config.json", Config);
-    public void SaveConfig() => FileController.SaveFile("Todo.config.json", Config.GetType(), Config);
+    private TodoConfig LoadConfig() => CharacterFileController.LoadFile<TodoConfig>("Todo.config.json", Config);
+    public void SaveConfig() => CharacterFileController.SaveFile("Todo.config.json", Config.GetType(), Config);
 }

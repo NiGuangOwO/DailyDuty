@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Globalization;
-using KamiLib.Caching;
+using KamiLib.Game;
 using Lumina.Excel.GeneratedSheets;
 
 namespace DailyDuty.Models;
@@ -13,7 +13,7 @@ public class LuminaTaskConfig<T>
     public required bool Enabled { get; set; }
     public required int TargetCount { get; set; }
 
-    public string GetLabel() => this switch
+    public string Label() => this switch
     {
         LuminaTaskConfig<ContentRoulette> => LuminaCache<ContentRoulette>.Instance.GetRow(RowId)!.Name.ToString(),
         LuminaTaskConfig<ClassJob> => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(LuminaCache<ClassJob>.Instance.GetRow(RowId)!.Name.ToString()),

@@ -3,21 +3,19 @@ using DailyDuty.System.Localization;
 using DailyDuty.Views;
 using Dalamud.Plugin;
 using KamiLib;
-using KamiLib.Commands;
+using KamiLib.System;
 
 namespace DailyDuty;
 
 public sealed class DailyDutyPlugin : IDalamudPlugin
 {
-    public string Name => "DailyDuty";
-
     public static DailyDutySystem System = null!;
     
     public DailyDutyPlugin(DalamudPluginInterface pluginInterface)
     {
         pluginInterface.Create<Service>();
 
-        KamiCommon.Initialize(pluginInterface, Name);
+        KamiCommon.Initialize(pluginInterface, "DailyDuty");
         KamiCommon.RegisterLocalizationHandler(key => Strings.ResourceManager.GetString(key, Strings.Culture));
                 
         System = new DailyDutySystem();

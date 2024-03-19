@@ -4,7 +4,7 @@ using DailyDuty.System;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using KamiLib.Utilities;
+using KamiLib.Utility;
 
 namespace DailyDuty.Models;
 
@@ -23,13 +23,13 @@ public class LinkedStatusMessage : StatusMessage
             Type = MessageChannel,
             Message = new SeStringBuilder()
                 .AddUiForeground($"[{dailyDutyLabel}] ", 45)
-                .AddUiForeground($"[{SourceModule.GetLabel()}] ", 62)
+                .AddUiForeground($"[{SourceModule.Label()}] ", 62)
                 .Add(messagePayload)
                 .AddUiForeground(Message, 576)
                 .Add(RawPayload.LinkTerminator)
                 .Build()
         };
         
-        Service.Chat.PrintChat(message);
+        Service.Chat.Print(message);
     }
 }
